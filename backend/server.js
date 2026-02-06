@@ -94,7 +94,7 @@ app.post('/api/forgot-password', async (req, res) => {
 app.get('/api/auth/whoop', (req, res) => {
     const clientId = process.env.WHOOP_CLIENT_ID;
     const redirectUri = process.env.WHOOP_REDIRECT_URI;
-    const scope = 'offline read:recovery read:cycles read:sleep read:workout read:profile';
+    const scope = 'offline read:recovery read:cycles read:sleep read:workout read:profile read:body_measurement';
     const state = 'random_string_to_verify_later'; // In production, use a secure random string
 
     if (!clientId || !redirectUri || clientId === 'your_client_id_here') {
@@ -140,15 +140,20 @@ app.get('/api/auth/whoop/callback', async (req, res) => {
         });
 
         const { access_token, refresh_token, expires_in } = tokenResponse.data;
+        const authHeaders = { headers: { 'Authorization': `Bearer ${access_token}` } };
 
-        // Fetch Recovery Data (Example)
-        const recoveryResponse = await axios.get('https://api.prod.whoop.com/developer/v1/recovery', {
-            headers: { 'Authorization': `Bearer ${access_token}` }
-        });
+        // Fetch User Data Concurrently
+        const [profileRes, bodyRes, recoveryRes] = await Promise.all([
+            axios.get('https://api.prod.whoop.com/developer/v1/user/profile/basic', authHeaders),
+            axios.get('https://api.prod.whoop.com/developer/v1/user/measurement/body', authHeaders),
+            axios.get('https://api.prod.whoop.com/developer/v1/recovery', authHeaders)
+        ]);
 
         const whoopData = {
-            token_data: { access_token, refresh_token, expires_in }, // Be careful storing tokens in plain text in prod
-            recovery_data: recoveryResponse.data,
+            token_data: { access_token, refresh_token, expires_in },
+            user_profile: profileRes.data,
+            body_measurement: bodyRes.data,
+            recovery_data: recoveryRes.data,
             synced_at: new Date().toISOString()
         };
 
@@ -163,7 +168,7 @@ app.get('/api/auth/whoop/callback', async (req, res) => {
         };
 
         await s3Client.send(new PutObjectCommand(params));
-        console.log(`Successfully saved Real Whoop data to ${BUCKET_NAME}/${filename}`);
+        console.log(`Successfully saved Full Whoop data to ${BUCKET_NAME}/${filename}`);
 
         res.redirect('http://localhost:5175/connected-services?status=connected&service=whoop');
 
@@ -270,7 +275,7 @@ const streamToString = (stream) => new Promise((resolve, reject) => {
     stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
 });
 
-app.get('/api/data/whoop', async (req, res) => {
+app.get('/api/whoop/data', async (req, res) => {
     try {
         // List files in the Whoop user_data directory
         const listCommand = new ListObjectsV2Command({

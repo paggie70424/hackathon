@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const { S3Client, PutObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { fromIni } = require('@aws-sdk/credential-provider-ini');
 
 const app = express();
@@ -261,6 +261,50 @@ app.post('/api/chat', async (req, res) => {
 
     res.json({ response: responseText });
 });
+
+// Helper function to stream S3 body to string
+const streamToString = (stream) => new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.on('error', reject);
+    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+});
+
+app.get('/api/data/whoop', async (req, res) => {
+    try {
+        // List files in the Whoop user_data directory
+        const listCommand = new ListObjectsV2Command({
+            Bucket: BUCKET_NAME,
+            Prefix: 'Whoop/user_data/'
+        });
+
+        const listResponse = await s3Client.send(listCommand);
+
+        if (!listResponse.Contents || listResponse.Contents.length === 0) {
+            return res.status(404).json({ error: 'No Whoop data found' });
+        }
+
+        // Sort by LastModified descending (newest first)
+        const sortedFiles = listResponse.Contents.sort((a, b) => b.LastModified - a.LastModified);
+        const latestFile = sortedFiles[0];
+
+        // Get the latest file content
+        const getCommand = new GetObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: latestFile.Key
+        });
+
+        const getResponse = await s3Client.send(getCommand);
+        const bodyContents = await streamToString(getResponse.Body);
+        const data = JSON.parse(bodyContents);
+
+        res.json(data);
+    } catch (err) {
+        console.error("Error retrieving Whoop data:", err);
+        res.status(500).json({ error: 'Failed to retrieve data', details: err.message });
+    }
+});
+
 
 app.listen(port, () => {
     console.log(`Backend server listening at http://localhost:${port}`);

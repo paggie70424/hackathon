@@ -8,19 +8,19 @@
     <!-- Summary Cards -->
     <div class="summary-grid">
       <div class="summary-card">
-        <h3>Average Sleep</h3>
-        <p class="summary-value">7h 42m</p>
-        <p class="summary-trend positive">+15m today</p>
+        <h3>Recovery Score</h3>
+        <p class="summary-value">{{ recoveryScore }}</p>
+        <p class="summary-trend" :class="getScoreClass(recoveryScore)">Whoop</p>
       </div>
       <div class="summary-card">
-        <h3>Study Focus</h3>
-        <p class="summary-value">85%</p>
-        <p class="summary-trend positive">+5% vs last week</p>
+        <h3>HRV (ms)</h3>
+        <p class="summary-value">{{ hrv }}</p>
+        <p class="summary-trend neutral">Variability</p>
       </div>
        <div class="summary-card">
-        <h3>Activity Strain</h3>
-        <p class="summary-value">12.5</p>
-        <p class="summary-trend neutral">Optimal Range</p>
+        <h3>RHR (bpm)</h3>
+        <p class="summary-value">{{ rhr }}</p>
+        <p class="summary-trend neutral">Resting Rate</p>
       </div>
     </div>
 
@@ -142,9 +142,51 @@ const doughnutOptions = {
   }
 }
 
-onMounted(() => {
-  loaded.value = true
+const recoveryScore = ref('Loading...')
+const hrv = ref('--')
+const rhr = ref('--')
+
+onMounted(async () => {
+    try {
+        const response = await fetch('http://localhost:3000/api/data/whoop');
+        if (response.ok) {
+            const data = await response.json();
+            // Process Whoop Data
+            if (data.recovery_data) {
+                // Example: Whoop Recovery data structure might vary, let's assume flat or adjust
+                // Based on standard Whoop API: data.recovery_data.score (0-100)
+                // Note: The previous backend implementation fetched `recoveryResponse.data`.
+                // Let's assume it returned an array of records or a single record.
+                // We'll log it to be safe in dev, but for code we'll try to access safely.
+                
+                const records = Array.isArray(data.recovery_data) ? data.recovery_data : [data.recovery_data];
+                const latestRecord = records[0]; // Assuming newest first or single object
+
+                if (latestRecord && latestRecord.score) {
+                    recoveryScore.value = latestRecord.score.recovery_score || latestRecord.score; // Adjust based on actual API
+                    hrv.value = latestRecord.score.hrv_rmssd_milli || '--';
+                    rhr.value = latestRecord.score.resting_heart_rate || '--';
+
+                    // Update Charts if we had historical data (mocking the chart update with this single point for now)
+                    // activityData.datasets[0].data = ... 
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to fetch Whoop data", e)
+    } finally {
+        loaded.value = true
+    }
 })
+</script>
+
+<script>
+// Helper for class binding (can be in setup too but keeping clean)
+const getScoreClass = (score) => {
+    if (score >= 66) return 'positive'; // Green
+    if (score >= 33) return 'neutral';  // Yellow
+    return 'negative';                  // Red
+}
 </script>
 
 <style scoped>

@@ -119,11 +119,21 @@ const toggleConnection = (service) => {
      return
   }
 
-  service.connected = !service.connected
+    service.connected = !service.connected
+    // Persist manual toggle (for other services mainly)
+    localStorage.setItem(`service_connected_${service.id}`, service.connected)
 }
 
 onMounted(() => {
-    // Check for "connected" status from backend redirect
+    // 1. Restore state from localStorage
+    services.value.forEach(s => {
+        const storedState = localStorage.getItem(`service_connected_${s.id}`)
+        if (storedState === 'true') {
+            s.connected = true
+        }
+    })
+
+    // 2. Check for "connected" query param (override and save)
     const status = route.query.status
     const serviceParam = route.query.service
 
@@ -131,7 +141,9 @@ onMounted(() => {
         const serviceToUpdate = services.value.find(s => s.id === serviceParam)
         if (serviceToUpdate) {
             serviceToUpdate.connected = true
-            // Optional: Remove query params from URL to clean it up
+            localStorage.setItem(`service_connected_${serviceParam}`, 'true')
+            
+            // Clean URL
             window.history.replaceState({}, document.title, window.location.pathname)
         }
     }

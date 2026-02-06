@@ -32,8 +32,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { Activity, BookOpen, Building2, Smartphone, Calendar, Hash } from 'lucide-vue-next'
+
+const route = useRoute()
 
 const services = ref([
   {
@@ -43,8 +46,9 @@ const services = ref([
     icon: Activity,
     color: '#e74c3c',
     bgColor: '#fdezea',
-    connected: true
+    connected: false // Default to false
   },
+  // ... other services
   {
     id: 'canvas',
     name: 'Canvas',
@@ -93,8 +97,45 @@ const services = ref([
 ])
 
 const toggleConnection = (service) => {
+  if (service.id === 'whoop') {
+      if (!service.connected) {
+          // Start OAuth Flow
+          window.location.href = 'http://localhost:3000/api/auth/whoop'
+      } else {
+          // Disconnect
+          service.connected = false
+          // Ideally call backend to revoke token/clear session
+      }
+      return
+  }
+  
+  if (service.id === 'apple-health') {
+     if (!service.connected) {
+         // Start Simulated OAuth Flow
+         window.location.href = 'http://localhost:3000/api/auth/apple'
+     } else {
+         service.connected = false
+     }
+     return
+  }
+
   service.connected = !service.connected
 }
+
+onMounted(() => {
+    // Check for "connected" status from backend redirect
+    const status = route.query.status
+    const serviceParam = route.query.service
+
+    if (status === 'connected') {
+        const serviceToUpdate = services.value.find(s => s.id === serviceParam)
+        if (serviceToUpdate) {
+            serviceToUpdate.connected = true
+            // Optional: Remove query params from URL to clean it up
+            window.history.replaceState({}, document.title, window.location.pathname)
+        }
+    }
+})
 </script>
 
 <style scoped>

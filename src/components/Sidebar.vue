@@ -23,12 +23,17 @@
         <Database class="icon" />
         <span class="text">Data Retention</span>
       </router-link>
+      
+      <router-link to="/ai-chat" class="nav-item">
+        <MessageSquare class="icon" />
+        <span class="text">AI Chat</span>
+      </router-link>
     </nav>
   </aside>
 </template>
 
 <script setup>
-import { LayoutGrid, Shield, BarChart3, Database } from 'lucide-vue-next'
+import { LayoutGrid, Shield, BarChart3, Database, MessageSquare } from 'lucide-vue-next'
 </script>
 
 <style scoped>

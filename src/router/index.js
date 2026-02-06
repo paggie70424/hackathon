@@ -31,6 +31,23 @@ const router = createRouter({
       path: '/data-retention',
       name: 'data-retention',
       component: () => import('../views/DataRetention.vue')
+    },
+    {
+      path: '/whoop-consent',
+      name: 'whoop-consent',
+      component: () => import('../views/WhoopConsent.vue'),
+      meta: { layout: 'empty' }
+    },
+    {
+      path: '/apple-consent',
+      name: 'apple-consent',
+      component: () => import('../views/AppleConsent.vue'),
+      meta: { layout: 'empty' }
+    },
+    {
+      path: '/ai-chat',
+      name: 'ai-chat',
+      component: () => import('../views/AIChat.vue')
     }
   ]
 })

@@ -1,6 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const axios = require('axios');
 const { S3Client, PutObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { fromIni } = require('@aws-sdk/credential-provider-ini');
 
@@ -87,6 +89,177 @@ app.post('/api/forgot-password', async (req, res) => {
     } else {
         return res.status(404).json({ error: 'Email not found.' });
     }
+});
+
+app.get('/api/auth/whoop', (req, res) => {
+    const clientId = process.env.WHOOP_CLIENT_ID;
+    const redirectUri = process.env.WHOOP_REDIRECT_URI;
+    const scope = 'offline read:recovery read:cycles read:sleep read:workout read:profile';
+    const state = 'random_string_to_verify_later'; // In production, use a secure random string
+
+    if (!clientId || !redirectUri || clientId === 'your_client_id_here') {
+        const errorHtml = `
+            <html>
+                <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+                    <h1 style="color: #e74c3c;">Configuration Required</h1>
+                    <p>The Whoop Client ID has not been set.</p>
+                    <p>Please open the <code>.env</code> file in your project root and replace 
+                    <code>your_client_id_here</code> with your actual Whoop Client ID.</p>
+                    <p>After saving the file, restart the backend server.</p>
+                    <a href="http://localhost:5175/connected-services">Back to Dashboard</a>
+                </body>
+            </html>
+        `;
+        return res.send(errorHtml);
+    }
+
+    const authUrl = `https://api.prod.whoop.com/oauth/oauth2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${state}`;
+
+    res.redirect(authUrl);
+});
+
+app.get('/api/auth/whoop/callback', async (req, res) => {
+    const { code, state } = req.query;
+
+    if (!code) {
+        return res.status(400).json({ error: 'Authorization code missing' });
+    }
+
+    try {
+        // Exchange code for token
+        const tokenResponse = await axios.post('https://api.prod.whoop.com/oauth/oauth2/token', new URLSearchParams({
+            grant_type: 'authorization_code',
+            code: code,
+            client_id: process.env.WHOOP_CLIENT_ID,
+            client_secret: process.env.WHOOP_CLIENT_SECRET,
+            redirect_uri: process.env.WHOOP_REDIRECT_URI
+        }), {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+
+        const { access_token, refresh_token, expires_in } = tokenResponse.data;
+
+        // Fetch Recovery Data (Example)
+        const recoveryResponse = await axios.get('https://api.prod.whoop.com/developer/v1/recovery', {
+            headers: { 'Authorization': `Bearer ${access_token}` }
+        });
+
+        const whoopData = {
+            token_data: { access_token, refresh_token, expires_in }, // Be careful storing tokens in plain text in prod
+            recovery_data: recoveryResponse.data,
+            synced_at: new Date().toISOString()
+        };
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `Whoop/user_data/${timestamp}_whoop_data.json`;
+
+        const params = {
+            Bucket: BUCKET_NAME,
+            Key: filename,
+            Body: JSON.stringify(whoopData, null, 2),
+            ContentType: 'application/json'
+        };
+
+        await s3Client.send(new PutObjectCommand(params));
+        console.log(`Successfully saved Real Whoop data to ${BUCKET_NAME}/${filename}`);
+
+        res.redirect('http://localhost:5175/connected-services?status=connected&service=whoop');
+
+    } catch (err) {
+        console.error("Error connecting to Whoop:", err.response ? err.response.data : err.message);
+        res.redirect('http://localhost:5175/connected-services?status=error&message=whoop_connection_failed');
+    }
+});
+
+app.get('/api/auth/apple', (req, res) => {
+    // Redirect to frontend consent page with a mock state
+    const redirectUrl = `http://localhost:5175/apple-consent?state=mock_apple_state_xyz`;
+    res.redirect(redirectUrl);
+});
+
+app.get('/api/auth/apple/callback', async (req, res) => {
+    const { code } = req.query;
+
+    if (!code) {
+        return res.status(400).json({ error: 'Authorization code missing' });
+    }
+
+    // SIMULATION: Generate Mock Apple Watch Data
+    const mockAppleData = {
+        user: {
+            id: "apple_user_998877",
+            sourceName: "Apple Watch Series 9",
+            osVersion: "10.1"
+        },
+        health_data: {
+            heart_rate: {
+                avg_bpm: 72,
+                min_bpm: 58,
+                max_bpm: 110,
+                readings_count: 1450
+            },
+            steps: 8432,
+            active_energy_burned_kcal: 450,
+            stand_hours: 12,
+            sleep_analysis: {
+                in_bed_min: 480,
+                asleep_min: 420
+            }
+        },
+        synced_at: new Date().toISOString()
+    };
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `AppleHealth/user_data/${timestamp}_apple_data.json`;
+
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: filename,
+        Body: JSON.stringify(mockAppleData, null, 2),
+        ContentType: 'application/json'
+    };
+
+    try {
+        await s3Client.send(new PutObjectCommand(params));
+        console.log(`Successfully saved Apple Health data to ${BUCKET_NAME}/${filename}`);
+
+        // Redirect back to dashboard with success status
+        res.redirect('http://localhost:5175/connected-services?status=connected&service=apple-health');
+    } catch (err) {
+        console.error("Error saving Apple Health data:", err);
+        res.redirect('http://localhost:5175/connected-services?status=error&message=s3_upload_failed');
+    }
+});
+
+app.post('/api/chat', async (req, res) => {
+    const { message, model } = req.body;
+
+    if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // SIMULATED AI LATENCY
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    let responseText = "";
+
+    // Generate mock responses based on model persona
+    if (model === 'gpt-4') {
+        responseText = `[GPT-4 Analysis] Based on your recent Whoop and Apple Health data, I've noticed your sleep consistency has improved by 12% this week. Great job! The user message "${message}" is interesting - did you know that consistent sleep schedules correlate with 20% better recovery scores?`;
+    }
+    else if (model === 'gemini-pro') {
+        responseText = `*Gemini Insight*: Hello! I see you're asking about "${message}". Processing your latest metrics: Your heart rate variability (HRV) is trending upwards. This is a positive sign of fitness adaptation. Keep up the cardio!`;
+    }
+    else if (model === 'claude-3') {
+        responseText = `Here is a breakdown from Claude 3 Opus:\n\n1. **Query**: "${message}"\n2. **Context**: Health Data Analysis\n3. **Recommendation**: Consider increasing your hydration. Your recovery data suggests you might be slightly dehydrated post-workout.`;
+    }
+    else {
+        responseText = `[Mistral] I processed: "${message}". Your physical strain levels are balanced. Maintain this load for optimal performance without overtraining.`;
+    }
+
+    res.json({ response: responseText });
 });
 
 app.listen(port, () => {

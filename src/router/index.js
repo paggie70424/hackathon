@@ -21,6 +21,16 @@ const router = createRouter({
       path: '/data-insights',
       name: 'data-insights',
       component: () => import('../views/DataInsights.vue')
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: () => import('../views/AboutUs.vue')
+    },
+    {
+      path: '/data-retention',
+      name: 'data-retention',
+      component: () => import('../views/DataRetention.vue')
     }
   ]
 })

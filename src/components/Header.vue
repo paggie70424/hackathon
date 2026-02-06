@@ -2,13 +2,42 @@
   <header class="header">
     <div class="header-content">
       <div class="right-section">
-        <a href="#" class="header-link">About Us</a>
-        <a href="#" class="header-link">Sign In</a>
-        <a href="#" class="header-link account-btn">Account</a>
+        <router-link to="/about" class="header-link">About Us</router-link>
+        <a href="#" class="header-link" @click.prevent="openAuth('signin')">Sign In</a>
+        <button class="header-link account-btn" @click="openAuth('signup')">Sign Up</button>
       </div>
     </div>
+
+    <!-- Auth Modal -->
+    <transition name="modal">
+      <AuthModal 
+        v-if="showAuth" 
+        :initial-mode="authMode" 
+        @close="showAuth = false"
+        @success="handleAuthSuccess" 
+      />
+    </transition>
   </header>
 </template>
+
+<script setup>
+import { ref } from 'vue'
+import AuthModal from './AuthModal.vue'
+
+const showAuth = ref(false)
+const authMode = ref('signin')
+
+const openAuth = (mode) => {
+  authMode.value = mode
+  showAuth.value = true
+}
+
+const handleAuthSuccess = (userData) => {
+  showAuth.value = false
+  // Ideally, update global state/user store here
+  alert(`Welcome, ${userData.firstName || userData.email}!`)
+}
+</script>
 
 <style scoped>
 .header {
@@ -38,6 +67,12 @@
   color: var(--c-text);
   font-weight: 500;
   font-size: 0.9rem;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
   transition: color 0.2s;
 }
 
@@ -55,5 +90,16 @@
 .account-btn:hover {
   background-color: var(--c-brand-light);
   color: white;
+}
+
+/* Modal Transition */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
 }
 </style>

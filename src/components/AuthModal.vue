@@ -11,6 +11,24 @@
       </div>
 
       <form @submit.prevent="handleSubmit" class="auth-form">
+        
+        <!-- Role Selection (Visible for both Sign In and Sign Up as requested) -->
+        <div class="form-group">
+          <label>I am a:</label>
+          <div class="role-selector">
+            <label class="role-option" :class="{ active: form.role === 'Student' }">
+              <input type="radio" v-model="form.role" value="Student">
+              <span class="role-icon">🎓</span> 
+              Student
+            </label>
+            <label class="role-option" :class="{ active: form.role === 'Professional' }">
+              <input type="radio" v-model="form.role" value="Professional">
+              <span class="role-icon">💼</span>
+              Professional Staff
+            </label>
+          </div>
+        </div>
+
         <!-- Sign Up Fields -->
         <div v-if="mode === 'signup'" class="form-row">
            <div class="form-group half">
@@ -101,6 +119,7 @@ const statusMessage = ref('')
 const statusType = ref('info')
 
 const form = reactive({
+  role: 'Student',
   prefix: 'Mr',
   firstName: '',
   lastName: '',
@@ -117,7 +136,7 @@ const headerTitle = computed(() => {
 })
 
 const headerSubtitle = computed(() => {
-  if (mode.value === 'signin') return 'Sign in to access your dashboard.'
+  if (mode.value === 'signin') return `Sign in as ${form.role} to access your dashboard.`
   if (mode.value === 'signup') return 'Enter your details to get started.'
   return 'Enter your email to receive a reset link.'
 })
@@ -141,9 +160,9 @@ const switchToForgot = () => {
 const handleSubmit = async () => {
   if (mode.value === 'signin') {
       // Simulate Sign In
-      statusMessage.value = 'Sign in simulation successful.'
+      statusMessage.value = `Sign in as ${form.role} successful.`
       statusType.value = 'success'
-      setTimeout(() => emit('success', { email: form.email }), 1000)
+      setTimeout(() => emit('success', { email: form.email, role: form.role }), 1000)
       return;
   }
 
@@ -301,6 +320,44 @@ input, select {
 input:focus, select:focus {
   outline: none;
   border-color: var(--c-brand);
+}
+
+.role-selector {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.role-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+}
+
+.role-option:hover {
+  background-color: var(--c-bg-light);
+}
+
+.role-option.active {
+  border-color: var(--c-brand);
+  background-color: rgba(62, 175, 124, 0.1); /* Assuming var(--c-brand) uses main green color */
+  color: var(--c-brand);
+}
+
+.role-option input[type="radio"] {
+  display: none;
+}
+
+.role-icon {
+  font-size: 1.2em;
 }
 
 .submit-btn {

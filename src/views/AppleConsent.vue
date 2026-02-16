@@ -61,7 +61,7 @@ const router = useRouter()
 const authorize = () => {
     // Simulate iOS native transition
     setTimeout(() => {
-        window.location.href = 'http://localhost:3000/api/auth/apple/callback?code=mock_apple_code_123'
+        window.location.href = 'http://localhost:3001/api/auth/apple/callback?code=mock_apple_code_123'
     }, 800)
 }
 

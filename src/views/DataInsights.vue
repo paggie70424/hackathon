@@ -342,7 +342,7 @@ const doughnutOptions = {
 
 onMounted(async () => {
     try {
-        const response = await fetch('http://localhost:3000/api/whoop/data');
+        const response = await fetch('http://localhost:3001/api/whoop/data');
         if (response.ok) {
             const data = await response.json();
             

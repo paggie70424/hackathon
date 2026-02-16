@@ -43,7 +43,7 @@ const authorize = () => {
   authorizing.value = true
   // Simulate delay then redirect to backend callback
   setTimeout(() => {
-    window.location.href = 'http://localhost:3000/api/auth/whoop/callback?code=mock_auth_code_xyz'
+    window.location.href = 'http://localhost:3001/api/auth/whoop/callback?code=mock_auth_code_xyz'
   }, 1500)
 }
 

@@ -100,7 +100,7 @@ const toggleConnection = (service) => {
   if (service.id === 'whoop') {
       if (!service.connected) {
           // Start OAuth Flow
-          window.location.href = 'http://localhost:3000/api/auth/whoop'
+          window.location.href = 'http://localhost:3001/api/auth/whoop'
       } else {
           // Disconnect
           service.connected = false
@@ -112,7 +112,7 @@ const toggleConnection = (service) => {
   if (service.id === 'apple-health') {
      if (!service.connected) {
          // Start Simulated OAuth Flow
-         window.location.href = 'http://localhost:3000/api/auth/apple'
+         window.location.href = 'http://localhost:3001/api/auth/apple'
      } else {
          service.connected = false
      }

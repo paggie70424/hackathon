@@ -32,6 +32,32 @@ const router = createRouter({
       name: 'data-retention',
       component: () => import('../views/DataRetention.vue')
     },
+    // Data Resources Routes
+    {
+      path: '/resources/whoop',
+      name: 'resources-whoop',
+      component: () => import('../views/DataResources/WhoopView.vue')
+    },
+    {
+      path: '/resources/apple-health',
+      name: 'resources-apple',
+      component: () => import('../views/DataResources/AppleWatchView.vue')
+    },
+    {
+      path: '/resources/fitbit',
+      name: 'resources-fitbit',
+      component: () => import('../views/DataResources/FitbitView.vue')
+    },
+    {
+      path: '/resources/moodle',
+      name: 'resources-moodle',
+      component: () => import('../views/DataResources/MoodleView.vue')
+    },
+    {
+      path: '/resources/canvas',
+      name: 'resources-canvas',
+      component: () => import('../views/DataResources/CanvasView.vue')
+    },
     {
       path: '/whoop-consent',
       name: 'whoop-consent',

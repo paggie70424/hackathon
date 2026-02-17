@@ -10,6 +10,19 @@
         </p>
       </div>
 
+      <!-- Sign in with Apple (hidden on Forgot Password) -->
+      <div v-if="mode !== 'forgot'" class="social-auth">
+        <SignInWithAppleButton
+          :type="mode === 'signup' ? 'signup' : 'signin'"
+          theme="black"
+          @error="onAppleSignInError"
+        />
+      </div>
+
+      <div class="divider" v-if="mode !== 'forgot'">
+        <span>or continue with email</span>
+      </div>
+
       <form @submit.prevent="handleSubmit" class="auth-form">
         
         <!-- Role Selection (Visible for both Sign In and Sign Up as requested) -->
@@ -103,6 +116,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
+import SignInWithAppleButton from './SignInWithAppleButton.vue'
 
 const props = defineProps({
   initialMode: {
@@ -155,6 +169,11 @@ const toggleMode = () => {
 const switchToForgot = () => {
   mode.value = 'forgot'
   statusMessage.value = ''
+}
+
+const onAppleSignInError = (err) => {
+  statusMessage.value = err?.message || 'Sign in with Apple is not configured.'
+  statusType.value = 'error'
 }
 
 const handleSubmit = async () => {
@@ -358,6 +377,34 @@ input:focus, select:focus {
 
 .role-icon {
   font-size: 1.2em;
+}
+
+.social-auth {
+  margin-bottom: 1rem;
+}
+
+.social-auth :deep(.sign-in-with-apple) {
+  width: 100%;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 1.25rem 0;
+  color: var(--c-text-light);
+  font-size: 0.9rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--c-border);
+}
+
+.divider span {
+  padding: 0 1rem;
 }
 
 .submit-btn {

@@ -114,6 +114,61 @@
           </div>
         </div>
 
+        <!-- ── Student Search & Filter ──────────────────────────────── -->
+        <div class="section-card student-search-card">
+          <div class="section-head">
+            <h2 class="section-title"><Users class="s-icon" />Connected Students
+              <span class="student-count-badge">{{ rows.length }} connected</span>
+            </h2>
+            <div class="search-controls">
+              <input
+                v-model="searchQuery"
+                class="search-input"
+                type="text"
+                placeholder="Search by owner_id or email…"
+                id="student-search-input"
+              />
+              <select v-model="selectedStudent" class="student-select" id="student-select-dropdown">
+                <option :value="null">All Students</option>
+                <option v-for="row in rows" :key="row.owner_id" :value="row.owner_id">
+                  {{ row.email || row.owner_id }} ({{ row.owner_id }})
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div v-if="rows.length === 0 && !loading" class="empty-state" style="padding:1rem 0">
+            No students connected yet.
+          </div>
+
+          <div v-else class="student-chips">
+            <button
+              class="student-chip"
+              :class="{ active: selectedStudent === null && searchQuery === '' }"
+              @click="selectedStudent = null; searchQuery = ''"
+              id="student-chip-all"
+            >
+              <span class="chip-label">All</span>
+            </button>
+            <button
+              v-for="row in rows"
+              :key="row.owner_id"
+              class="student-chip"
+              :class="{ active: selectedStudent === row.owner_id }"
+              @click="selectedStudent = row.owner_id; searchQuery = ''"
+              :id="'student-chip-' + row.owner_id"
+            >
+              <span class="chip-id mono">{{ row.owner_id }}</span>
+              <span class="chip-sep">·</span>
+              <span class="chip-email">{{ row.email || '—' }}</span>
+            </button>
+          </div>
+
+          <div v-if="filteredRows.length === 0 && rows.length > 0" class="search-no-result">
+            No students match <strong>"{{ searchQuery }}"</strong>
+          </div>
+        </div>
+
         <!-- Athena Query Preview -->
         <div class="section-card">
           <div class="section-head">
@@ -143,7 +198,7 @@ GROUP  BY owner_id, email;</pre>
             </button>
           </div>
           <div v-if="loading" class="loading-wrap"><div class="spinner"></div><span>Fetching Whoop data…</span></div>
-          <div v-else-if="rows.length === 0" class="empty-state">No Whoop data found. Connect via Connected Services first.</div>
+          <div v-else-if="filteredRows.length === 0" class="empty-state">No students match your filter. <button class="link-btn" @click="selectedStudent=null;searchQuery=''">Clear filter</button></div>
           <div v-else class="table-wrap">
             <table class="analytics-table">
               <thead>
@@ -155,7 +210,7 @@ GROUP  BY owner_id, email;</pre>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in rows" :key="row.owner_id">
+                <tr v-for="row in filteredRows" :key="row.owner_id">
                   <td class="mono td-id">{{ row.owner_id }}</td>
                   <td class="td-email">{{ row.email }}</td>
                   <td>{{ row.display_name }}</td>
@@ -289,6 +344,28 @@ const rows         = computed(() => summaryData.value.rows || [])
 const dataProducts = computed(() => summaryData.value.data_products || [])
 const activeProduct = ref(null)
 const activeProd    = computed(() => dataProducts.value.find(p => p.id === activeProduct.value) || null)
+
+// ── Student search & filter ───────────────────────────────────────────
+const searchQuery     = ref('')
+const selectedStudent = ref(null)   // null = all; set to owner_id to filter
+
+const filteredRows = computed(() => {
+  let result = rows.value
+  // If a chip/dropdown selection is active, narrow to just that student
+  if (selectedStudent.value) {
+    result = result.filter(r => r.owner_id === selectedStudent.value)
+  }
+  // Also apply search text (runs on top of chip selection)
+  const q = searchQuery.value.trim().toLowerCase()
+  if (q) {
+    result = result.filter(r =>
+      String(r.owner_id).toLowerCase().includes(q) ||
+      (r.email || '').toLowerCase().includes(q) ||
+      (r.display_name || '').toLowerCase().includes(q)
+    )
+  }
+  return result
+})
 
 function selectProduct(id) {
   activeProduct.value = activeProduct.value === id ? null : id
@@ -592,4 +669,41 @@ const archSteps = shallowRef([
 .step-num { width:26px;height:26px;border-radius:50%;background:#8b5cf6;color:#fff;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
 .step-title { font-weight:700;font-size:.85rem;color:#1e1e2e;margin-bottom:.1rem; }
 .step-desc  { font-size:.78rem;color:#64748b;line-height:1.5; }
+
+/* ──── STUDENT SEARCH PANEL ────────────────────────────────────────── */
+.student-search-card { padding:1.1rem 1.25rem; }
+.student-count-badge { font-size:.68rem;font-weight:700;background:rgba(62,175,124,.1);color:#16a34a;padding:.1rem .45rem;border-radius:999px;margin-left:.5rem;letter-spacing:.03em; }
+
+.search-controls { display:flex;gap:.5rem;align-items:center;flex-wrap:wrap; }
+.search-input {
+  padding:.4rem .75rem;border:1px solid #e2e8f0;border-radius:7px;font-size:.8rem;color:#334155;
+  background:#f8fafc;outline:none;transition:border-color .15s,box-shadow .15s;min-width:220px;
+}
+.search-input:focus { border-color:#a78bfa;box-shadow:0 0 0 3px rgba(139,92,246,.12); }
+.search-input::placeholder { color:#94a3b8; }
+
+.student-select {
+  padding:.4rem .7rem;border:1px solid #e2e8f0;border-radius:7px;font-size:.8rem;color:#334155;
+  background:#f8fafc;outline:none;cursor:pointer;transition:border-color .15s;min-width:200px;
+}
+.student-select:focus { border-color:#a78bfa;box-shadow:0 0 0 3px rgba(139,92,246,.12); }
+
+.student-chips { display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.85rem; }
+.student-chip {
+  display:inline-flex;align-items:center;gap:.4rem;
+  padding:.35rem .8rem;border-radius:999px;
+  border:1px solid #e2e8f0;background:#f8fafc;
+  font-size:.76rem;cursor:pointer;transition:all .15s;
+  white-space:nowrap;
+}
+.student-chip:hover { border-color:#c4b5fd;background:rgba(139,92,246,.05);color:#7c3aed; }
+.student-chip.active { background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.4);color:#7c3aed; }
+.chip-id   { font-family:monospace;font-size:.7rem;color:#94a3b8;font-weight:600; }
+.chip-sep  { color:#cbd5e1; }
+.chip-email{ font-weight:600;color:#3b82f6;font-size:.75rem; }
+.student-chip.active .chip-id { color:#7c3aed; }
+.student-chip.active .chip-email { color:#7c3aed; }
+
+.search-no-result { margin-top:.65rem;font-size:.8rem;color:#94a3b8;padding:.4rem .2rem; }
+.link-btn { background:none;border:none;color:#7c3aed;font-weight:600;cursor:pointer;font-size:inherit;padding:0;text-decoration:underline; }
 </style>

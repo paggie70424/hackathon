@@ -87,6 +87,7 @@ const port = 3001;
 
 app.use(cors());
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Ensure data directories exist
 const DATA_DIR = path.join(__dirname, 'data');
@@ -358,14 +359,53 @@ app.get('/api/auth/apple', (req, res) => {
     const redirectUrl = `http://localhost:5173/apple-consent?state=mock_apple_state_xyz`;
     res.redirect(redirectUrl);
 });
+// --- UNBLOCK: accept Apple callback at /auth/apple/callback too ---
+// This matches redirect URIs like: https://<ngrok>.ngrok-free.dev/auth/apple/callback
 
+app.get('/auth/apple/callback', async (req, res) => {
+    const code = req.query?.code;
+
+    if (!code) {
+        console.log('[Apple] GET /auth/apple/callback missing code. Query:', req.query);
+        return res.status(400).json({ error: 'Authorization code missing' });
+    }
+
+    await handleAppleCallback(code, res);
+});
+
+// Apple uses POST with response_mode=form_post; code/id_token come in body
+app.post('/auth/apple/callback', async (req, res) => {
+    const code = req.body?.code || req.body?.authorization?.code;
+
+    if (!code) {
+        console.log('[Apple] POST /auth/apple/callback missing code. Body:', req.body);
+        return res.status(400).json({ error: 'Authorization code missing' });
+    }
+
+    await handleAppleCallback(code, res);
+});
 app.get('/api/auth/apple/callback', async (req, res) => {
-    const { code } = req.query;
+    const code = req.query?.code;
 
     if (!code) {
         return res.status(400).json({ error: 'Authorization code missing' });
     }
 
+    await handleAppleCallback(code, res);
+});
+
+// Apple uses POST with response_mode=form_post; code/id_token come in body
+app.post('/api/auth/apple/callback', async (req, res) => {
+    const code = req.body?.code || req.body?.authorization?.code;
+
+    if (!code) {
+        return res.status(400).json({ error: 'Authorization code missing' });
+    }
+
+    await handleAppleCallback(code, res);
+});
+
+async function handleAppleCallback(code, res) {
     const mockAppleData = {
         user: {
             id: "apple_user_998877",
@@ -414,7 +454,7 @@ app.get('/api/auth/apple/callback', async (req, res) => {
         await writeSyncLog({ deviceType: 'applewatch', status: 'failed', errorMessage: err.message });
         res.redirect('http://localhost:5173/connected-services?status=error&message=save_failed');
     }
-});
+}
 
 app.post('/api/chat', async (req, res) => {
     const { message, model } = req.body;

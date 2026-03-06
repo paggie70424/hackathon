@@ -1,0 +1,23 @@
+{
+  "user": {
+    "id": "apple_user_998877",
+    "sourceName": "Apple Watch Series 9",
+    "osVersion": "10.1"
+  },
+  "health_data": {
+    "heart_rate": {
+      "avg_bpm": 72,
+      "min_bpm": 58,
+      "max_bpm": 110,
+      "readings_count": 1450
+    },
+    "steps": 8432,
+    "active_energy_burned_kcal": 450,
+    "stand_hours": 12,
+    "sleep_analysis": {
+      "in_bed_min": 480,
+      "asleep_min": 420
+    }
+  },
+  "synced_at": "2026-03-06T00:56:02.930Z"
+}

@@ -82,7 +82,7 @@ function handleClick() {
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
-    response_type: 'code id_token',
+    response_type: 'code',
     response_mode: 'form_post',
     scope: 'name email',
     state
